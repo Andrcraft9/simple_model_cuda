@@ -1,6 +1,7 @@
 module mpp_module
-    ! Fake wrapper for MPI
+    ! Fake wrapper for MPI, CUDA - only
 
+    use cudafor
     use kind_module, only: wp8 => SHR_KIND_R8, wp4 => SHR_KIND_R4
 
     implicit none
@@ -25,6 +26,9 @@ contains
 
     subroutine mpp_init()
 
+        type (cudaDeviceProp) :: prop
+        integer :: nDevices=0, i, ierr
+
         mpp_period = (/.true., .true./)
         mpp_size = (/1, 1/)
         mpp_coord = (/0, 0/)
@@ -44,6 +48,46 @@ contains
             print *, "MPP INFO: kind 4 and kind 8 : ", wp4, wp8
             print *, "------------------------------------------------------------"
         endif
+
+        ! CUDA INFO
+        ! Number of CUDA-capable devices
+        ierr = cudaGetDeviceCount(nDevices)
+        if (nDevices == 0) then
+            write(*,"(/,'No CUDA devices found',/)")
+            stop
+        else if (nDevices == 1) then
+            write(*,"(/,'One CUDA device found',/)")
+        else 
+            write(*,"(/,i0,' CUDA devices found',/)") nDevices
+        end if
+        ! Loop over devices        
+        do i = 0, nDevices-1
+            write(*,"('Device Number: ',i0)") i
+            ierr = cudaGetDeviceProperties(prop, i)
+            if (ierr .eq. 0) then
+                write(*,"('  GetDeviceProperties for device ',i0,': Passed')") i
+            else
+                write(*,"('  GetDeviceProperties for device ',i0,': Failed')") i
+            endif
+            ! General device info
+            write(*,"('  Device Name: ',a)") trim(prop%name)
+            write(*,"('  Compute Capability: ',i0,'.',i0)") &
+                prop%major, prop%minor
+            write(*,"('  Number of Multiprocessors: ',i0)") &
+                prop%multiProcessorCount
+            write(*,"('  Max Threads per Multiprocessor: ',i0)") &
+                prop%maxThreadsPerMultiprocessor
+            write(*,"('  Global Memory (GB): ',f9.3,/)") &
+                prop%totalGlobalMem/1024.0**3
+            ! Execution Configuration
+            write(*,"('  Execution Configuration Limits')")
+            write(*,"('    Max Grid Dims: ',2(i0,' x '),i0)") &
+                prop%maxGridSize
+            write(*,"('    Max Block Dims: ',2(i0,' x '),i0)") &
+                prop%maxThreadsDim
+            write(*,"('    Max Threads per Block: ',i0,/)") &
+                prop%maxThreadsPerBlock
+        enddo
 
         mpp_time_model_step = 0.0d0
     end subroutine

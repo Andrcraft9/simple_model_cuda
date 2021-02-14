@@ -17,8 +17,8 @@ FCD = $(FC) $(FCGCC) $(FCGCC_DEBUG)
 #FCD = $(FC) $(FCGCC) $(FCGCC_FAST)
 
 # PGI OPTIONS
-FC = /opt/nvidia/hpc_sdk/Linux_x86_64/2021/compilers/bin/pgfortran
-FCGCC = -fopenmp -cpp -dM
+FC = /opt/nvidia/hpc_sdk/Linux_x86_64/2021/compilers/bin/nvfortran
+FCGCC = -fopenmp -cpp -dM -Mcuda=rdc
 FCGCC_DEBUG = -g -O
 
 #BASE = \
@@ -32,7 +32,7 @@ FCGCC_DEBUG = -g -O
 BASE = \
 	base/kind.f90 \
 	base/basinpar.f90 \
-	base/noparallel.f90 \
+	base/gpuparallel.f90 \
 	base/errors.f90 \
 	base/decomposition.f90 \
 	base/data_types.f90 \

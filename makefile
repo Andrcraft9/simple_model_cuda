@@ -1,5 +1,6 @@
 
 FC = mpifort
+
 # Definitions and Options:
 FCGCC = -fopenmp -cpp -dM -ffree-line-length-0
 FCINTEL = -assume byterecl -openmp -fpp -allow nofpp_comments
@@ -15,10 +16,23 @@ FCINTEL_FAST = -O3
 FCD = $(FC) $(FCGCC) $(FCGCC_DEBUG)
 #FCD = $(FC) $(FCGCC) $(FCGCC_FAST)
 
-BASE = \
+# PGI OPTIONS
+FC = /opt/nvidia/hpc_sdk/Linux_x86_64/2021/compilers/bin/pgfortran
+FCGCC = -fopenmp -cpp -dM
+FCGCC_DEBUG = -g -O
+
+#BASE = \
 	base/kind.f90 \
 	base/basinpar.f90 \
 	base/parallel.f90 \
+	base/errors.f90 \
+	base/decomposition.f90 \
+	base/data_types.f90 \
+	base/kernel_interface.f90
+BASE = \
+	base/kind.f90 \
+	base/basinpar.f90 \
+	base/noparallel.f90 \
 	base/errors.f90 \
 	base/decomposition.f90 \
 	base/data_types.f90 \

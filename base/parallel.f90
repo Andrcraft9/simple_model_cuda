@@ -59,10 +59,6 @@ contains
             print *, "MPP INFO: MPI byte, MPI real, MPI real8 : ", MPI_BYTE, MPI_REAL, MPI_REAL8
             print *, "MPP INFO: kind 4 and kind 8 : ", wp4, wp8
             print *, "MPP INFO: MPI version: ", trim(version)
-
-            print *, "MPP INFO: Version 2.0, only NO_PARALLEL, BLOCK mode:"
-            print *, "MPP INFO: Single OMP PARALLEL, OMP for pack/unpack MPI buffers, nowait loops, one global sync at mpi_waitall"
-            print *, "MPP INFO: dont use SIMUL syncs"
             print *, "------------------------------------------------------------"
         endif
         call mpi_barrier(mpp_cart_comm, ierr)

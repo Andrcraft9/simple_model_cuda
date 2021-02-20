@@ -1,0 +1,57 @@
+module solver_gpu_module
+
+    use kind_module, only: wp8 => SHR_KIND_R8, wp4 => SHR_KIND_R4
+    use kernel_interface_module
+    use decomposition_module, only: domain_type, domain => domain_data
+    use ocean_module, only: ocean_type, ocean_data
+    use grid_module, only: grid_type, grid_data
+
+    implicit none
+    save
+    public
+
+    integer, parameter :: BLOCK_X = 32, BLOCK_Y = 32
+
+contains
+
+subroutine envoke_sw_simple_kernel_gpu(k, it)
+    integer, intent(in) :: k
+    integer, intent(in) :: it
+    type(dim3) :: tBlock, grid
+
+    !if (it == 1) then
+    ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field
+    !endif
+
+    tBlock = dim3(BLOCK_X, BLOCK_Y, 1)
+    grid = dim3(ceiling(real(domain%bnx_end(k) - domain%bnx_start(k) + 1) / tBlock%x),  &
+                ceiling(real(domain%bny_end(k) - domain%bny_start(k) + 1) / tBlock%y),  &
+                1)
+
+    if (it == 1) then
+        print *, "KERNEL: GPU block is", tBlock%x, tBlock%y, tBlock%z
+        print *, "KERNEL: GPU grid is", grid%x, grid%y, grid%z
+    endif
+
+    call sw_simple_kernel_gpu<<<grid, tBlock>>>(domain%bnx_start(k), domain%bnx_end(k), domain%bny_start(k), domain%bny_end(k), ocean_data%ssh%block(k)%field_gpu)
+
+    !if (it == 100) then
+    ocean_data%ssh%block(k)%field = ocean_data%ssh%block(k)%field_gpu
+    !endif
+
+end subroutine
+
+attributes(global) subroutine sw_simple_kernel_gpu(nx_start, nx_end, ny_start, ny_end, ssh)
+    integer, intent(in), value :: nx_start, nx_end, ny_start, ny_end
+    real(wp8), intent(inout) :: ssh(nx_start:nx_end, ny_start:ny_end)
+    integer, value :: i, j
+
+    i = (blockIdx%x-1)*blockDim%x + threadIdx%x + (nx_start - 1)
+    j = (blockIdx%y-1)*blockDim%y + threadIdx%y + (ny_start - 1)
+    
+    if (i <= nx_end .and. j <= ny_end) then
+        ssh(i,j) = ssh(i,j) + 1.0d0
+     endif
+end subroutine
+
+end module solver_gpu_module

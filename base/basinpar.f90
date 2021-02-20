@@ -8,8 +8,8 @@ module basinpar_module
     save
     public
     
-    integer, parameter :: nx = 64,  &  ! number of total points in x-direction in base arrays
-                          ny = 64      ! number of total points in y-direction in base arrays
+    integer :: nx,  &  ! number of total points in x-direction in base arrays
+               ny      ! number of total points in y-direction in base arrays
 
     real(wp8), parameter :: dxst = 0.5d0,  &  ! longitude step (in degrees) in case of regular grid
                             dyst = 0.5d0      ! latitude  step (in degrees) in case of regular grid

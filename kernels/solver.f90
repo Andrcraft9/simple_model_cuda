@@ -12,8 +12,9 @@ module solver_module
 
 contains
 
-subroutine envoke_sw_simple_kernel(k)
+subroutine envoke_sw_simple_kernel(k, it)
     integer, intent(in) :: k
+    integer, intent(in) :: it
 
     call sw_simple_kernel(domain%bnx_start(k), domain%bnx_end(k), domain%bny_start(k), domain%bny_end(k),  &
                           ocean_data%ssh%block(k)%field)

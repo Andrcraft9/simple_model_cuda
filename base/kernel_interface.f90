@@ -13,17 +13,18 @@ contains
 !-----------------------------------------------------------------------------!
 !-------------------------- Interface subroutines ----------------------------!
 !-----------------------------------------------------------------------------!
-    subroutine envoke_empty_kernel(k)
+    subroutine envoke_empty_kernel(k, it)
         integer, intent(in) :: k
+        integer, intent(in) :: it
     end subroutine 
 
-    subroutine envoke(sub_kernel)
+    subroutine envoke(sub_kernel, it)
         procedure(envoke_empty_kernel), pointer :: sub_kernel
-    
+        integer, intent(in) :: it 
         integer :: k
 
         do k = 1, domain%bcount
-            call sub_kernel(k)
+            call sub_kernel(k, it)
         enddo
 
     end subroutine

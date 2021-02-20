@@ -1,6 +1,7 @@
 module ocean_module
     ! Ocean data
 
+    use mpp_module
     use decomposition_module, only: domain_type
     use data_types_module, only: data2D_real8_type
 
@@ -25,10 +26,30 @@ contains
         ! Initialization of grid data
         class(ocean_type), intent(inout) :: this
         type(domain_type), intent(in) :: domain
+        real(8) :: r8
 
+        ! CPU: init first
         call this%ssh%init(domain)
         call this%ubrtr%init(domain)
         call this%vbrtr%init(domain)
+
+        if (mpp_is_master()) then
+            print *, "INIT: CPU OK"
+        endif
+
+        ! GPU: init last
+        call this%ssh%init_gpu(domain)
+
+        if (mpp_is_master()) then
+            print *, "INIT: GPU OK"
+        endif
+
+        if (mpp_is_master()) then
+            print *, "INIT: SIZEOF OF FIRST SSH BLOCK  (B): ", sizeof(this%ssh%block(1)%field)
+            print *, "INIT: SIZEOF OF FIRST SSH BLOCK (KB): ", sizeof(this%ssh%block(1)%field) / 1024.0
+            print *, "INIT: SIZEOF OF FIRST SSH BLOCK (MB): ", sizeof(this%ssh%block(1)%field) / 1024.0 / 1024.0
+            print *, "INIT: SIZEOF OF FIRST SSH BLOCK (GB): ", sizeof(this%ssh%block(1)%field) / 1024.0 / 1024.0 / 1024.0
+        endif
     end subroutine
 
     subroutine clear(this, domain)
@@ -36,6 +57,10 @@ contains
         class(ocean_type), intent(inout) :: this
         type(domain_type), intent(in) :: domain
 
+        ! GPU: clear first
+        call this%ssh%clear_gpu(domain)
+
+        ! CPU: clear last
         call this%ssh%clear(domain)
         call this%ubrtr%clear(domain)
         call this%vbrtr%clear(domain)

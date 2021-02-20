@@ -33,10 +33,10 @@ contains
         allocate(this%bny_start(this%bcount), this%bny_end(this%bcount))
 
         if (mod(nx, (bppnx * mpp_size(1))) /= 0) then
-            call abort_model('Can not decompose direct X axis')
+            call abort_model('DD: Can not decompose direct X axis')
         endif
         if (mod(ny, (bppny * mpp_size(2))) /= 0) then
-            call abort_model('Can not decompose direct Y axis')
+            call abort_model('DD: Can not decompose direct Y axis')
         endif
 
         xloc = nx / (bppnx * mpp_size(1))
@@ -53,13 +53,12 @@ contains
             ys = ys + yloc
         enddo
 
-        if (mpp_rank .eq. 0) print *, "MPI pocs: ", mpp_count, " Domain decomposition:"
+        if (mpp_rank .eq. 0) print *, "DD: MPI pocs:                ", mpp_count
         do i = 0, mpp_count - 1
             if (mpp_rank .eq. i) then
-                print *, "rank, coord", mpp_rank, mpp_coord
+                print *, "DD: rank, coord              ", mpp_rank, mpp_coord
                 do k = 1, this%bcount
-                    print *, "block, bnx bounds", k, this%bnx_start(k), this%bnx_end(k)
-                    print *, "block, bny bounds", k, this%bny_start(k), this%bny_end(k)
+                    print *, "DD: block, bnx and bny bounds", k, this%bnx_start(k), this%bnx_end(k), this%bny_start(k), this%bny_end(k)
                 enddo
             endif
             call mpi_barrier(mpp_cart_comm, ierr)

@@ -13,13 +13,16 @@ FCINTEL_DEBUG = -g -O -check all -traceback
 FCGCC_FAST = -Ofast
 FCINTEL_FAST = -O3
 
-FCD = $(FC) $(FCGCC) $(FCGCC_DEBUG)
-#FCD = $(FC) $(FCGCC) $(FCGCC_FAST)
-
 # PGI OPTIONS
+# -Mcuda=rdc
 FC = /opt/nvidia/hpc_sdk/Linux_x86_64/2021/compilers/bin/nvfortran
-FCGCC = -fopenmp -cpp -dM -Mcuda=rdc
-FCGCC_DEBUG = -g -O
+FCGCC = -openmp -cpp -dM -cuda -gpu=cc60
+FCGCC_DEBUG = -g -C -gopt -Mneginfo=all
+FCGCC_FAST = -fast
+PROF = /opt/nvidia/hpc_sdk/Linux_x86_64/2021/cuda/bin/nvprof
+
+#FCD = $(FC) $(FCGCC) $(FCGCC_DEBUG)
+FCD = $(FC) $(FCGCC) $(FCGCC_FAST)
 
 #BASE = \
 	base/kind.f90 \
@@ -46,7 +49,8 @@ CONTROL = \
 	control/init_data.f90
 
 SOLVER = \
-	kernels/solver.f90
+	kernels/solver.f90 \
+	kernels/solver_gpu.cuf
 
 clean:
 	find . -name "*.o" -delete
@@ -56,3 +60,6 @@ clean:
 
 compile:
 	$(FCD) $(FCFLAGS) -o model $(BASE) $(DATA) $(CONTROL) $(SOLVER) model.f90
+
+run_example:
+	$(PROF) ./model 4096 4096 1 1 100

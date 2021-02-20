@@ -29,8 +29,7 @@ subroutine envoke_sw_simple_kernel_gpu(k, it)
                 1)
 
     if (it == 1) then
-        print *, "KERNEL: GPU block is", tBlock%x, tBlock%y, tBlock%z
-        print *, "KERNEL: GPU grid is", grid%x, grid%y, grid%z
+        print '(A35, I16, I8, I8, I4, I8, I8, I4)', "KERNEL: block, GPU block, grid:", k, tBlock%x, tBlock%y, tBlock%z, grid%x, grid%y, grid%z
     endif
 
     call sw_simple_kernel_gpu<<<grid, tBlock>>>(domain%bnx_start(k), domain%bnx_end(k), domain%bny_start(k), domain%bny_end(k), ocean_data%ssh%block(k)%field_gpu)

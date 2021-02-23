@@ -34,17 +34,6 @@ contains
         call this%vbrtr%init(domain)
 
         if (mpp_is_master()) then
-            print *, "INIT: CPU OK"
-        endif
-
-        ! GPU: init last
-        call this%ssh%init_gpu(domain)
-
-        if (mpp_is_master()) then
-            print *, "INIT: GPU OK"
-        endif
-
-        if (mpp_is_master()) then
             print *, "INIT: SIZEOF OF FIRST SSH BLOCK  (B): ", sizeof(this%ssh%block(1)%field)
             print *, "INIT: SIZEOF OF FIRST SSH BLOCK (KB): ", sizeof(this%ssh%block(1)%field) / 1024.0
             print *, "INIT: SIZEOF OF FIRST SSH BLOCK (MB): ", sizeof(this%ssh%block(1)%field) / 1024.0 / 1024.0
@@ -57,10 +46,6 @@ contains
         class(ocean_type), intent(inout) :: this
         type(domain_type), intent(in) :: domain
 
-        ! GPU: clear first
-        call this%ssh%clear_gpu(domain)
-
-        ! CPU: clear last
         call this%ssh%clear(domain)
         call this%ubrtr%clear(domain)
         call this%vbrtr%clear(domain)

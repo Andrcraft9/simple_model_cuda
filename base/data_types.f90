@@ -24,9 +24,7 @@ module data_types_module
         type(block2D_real4_type), allocatable :: block(:)
     contains
         procedure, public :: init => init_data2D_real4
-        procedure, public :: init_gpu => init_data2D_gpu_real4
         procedure, public :: clear => clear_data2D_real4
-        procedure, public :: clear_gpu => clear_data2D_gpu_real4
         procedure, public :: fill => fill_data2D_real4
     end type data2D_real4_type
 
@@ -34,9 +32,7 @@ module data_types_module
         type(block2D_real8_type), allocatable :: block(:)
     contains
         procedure, public :: init => init_data2D_real8
-        procedure, public :: init_gpu => init_data2D_gpu_real8
         procedure, public :: clear => clear_data2D_real8
-        procedure, public :: clear_gpu => clear_data2D_gpu_real8
         procedure, public :: fill => fill_data2D_real8
     end type data2D_real8_type
 
@@ -47,10 +43,17 @@ contains
         type(domain_type), intent(in) :: domain
         integer :: k
 
+        ! CPU: init first
         allocate(this%block(domain%bcount))
         do k = 1, domain%bcount
             allocate(this%block(k)%field(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
             this%block(k)%field = 0.0
+        enddo
+
+        ! GPU: init last
+        do k = 1, domain%bcount
+            allocate(this%block(k)%field_gpu(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
+            this%block(k)%field_gpu = 0.0
         enddo
     end subroutine
 
@@ -59,6 +62,12 @@ contains
         type(domain_type), intent(in) :: domain
         integer :: k
 
+        ! GPU: clear first
+        do k = 1, domain%bcount
+            deallocate(this%block(k)%field_gpu)
+        enddo
+
+        ! CPU: clear last
         do k = 1, domain%bcount
             deallocate(this%block(k)%field)
         enddo
@@ -70,10 +79,17 @@ contains
         type(domain_type), intent(in) :: domain
         integer :: k
 
+        ! CPU: init first
         allocate(this%block(domain%bcount))
         do k = 1, domain%bcount
             allocate(this%block(k)%field(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
-            this%block(k)%field = 0.0
+            this%block(k)%field = 0.0d0
+        enddo
+
+        ! GPU: init last
+        do k = 1, domain%bcount
+            allocate(this%block(k)%field_gpu(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
+            this%block(k)%field_gpu = 0.0d0
         enddo
     end subroutine
 
@@ -82,6 +98,12 @@ contains
         type(domain_type), intent(in) :: domain
         integer :: k
 
+        ! GPU: clear first
+        do k = 1, domain%bcount
+            deallocate(this%block(k)%field_gpu)
+        enddo
+
+        ! CPU: clear last
         do k = 1, domain%bcount
             deallocate(this%block(k)%field)
         enddo
@@ -101,6 +123,9 @@ contains
                 enddo
             enddo
         enddo
+
+        ! Copy to GPU
+        this%block(k)%field_gpu = this%block(k)%field
     end subroutine
 
     subroutine fill_data2D_real8(this, domain, val)
@@ -116,50 +141,9 @@ contains
                 enddo
             enddo
         enddo
+
+        ! Copy to GPU
+        this%block(k)%field_gpu = this%block(k)%field
     end subroutine
 
-
-! GPU CODE
-
-    subroutine init_data2D_gpu_real4(this, domain)
-        class(data2D_real4_type), intent(inout) :: this
-        type(domain_type), intent(in) :: domain
-        integer :: k
-
-        do k = 1, domain%bcount
-            allocate(this%block(k)%field_gpu(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
-            this%block(k)%field_gpu = 0.0
-        enddo
-    end subroutine
-
-    subroutine clear_data2D_gpu_real4(this, domain)
-        class(data2D_real4_type), intent(inout) :: this
-        type(domain_type), intent(in) :: domain
-        integer :: k
-
-        do k = 1, domain%bcount
-            deallocate(this%block(k)%field_gpu)
-        enddo
-    end subroutine
-
-    subroutine init_data2D_gpu_real8(this, domain)
-        class(data2D_real8_type), intent(inout) :: this
-        type(domain_type), intent(in) :: domain
-        integer :: k
-
-        do k = 1, domain%bcount
-            allocate(this%block(k)%field_gpu(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
-            this%block(k)%field_gpu = 0.0
-        enddo
-    end subroutine
-
-    subroutine clear_data2D_gpu_real8(this, domain)
-        class(data2D_real8_type), intent(inout) :: this
-        type(domain_type), intent(in) :: domain
-        integer :: k
-
-        do k = 1, domain%bcount
-            deallocate(this%block(k)%field_gpu)
-        enddo
-    end subroutine
 end module data_types_module

@@ -36,4 +36,51 @@ subroutine sw_simple_kernel(nx_start, nx_end, ny_start, ny_end, ssh)
 
 end subroutine
 
+subroutine envoke_sw_update_ssh_kernel(k, it)
+    integer, intent(in) :: k
+    integer, intent(in) :: it
+
+    call sw_update_ssh_kernel(domain%bnx_start(k), domain%bnx_end(k), domain%bny_start(k), domain%bny_end(k),  &
+                              1.0d0,  &
+                              grid_data%lu %block(k)%field,  &
+                              grid_data%dxt%block(k)%field,  &
+                              grid_data%dyt%block(k)%field,  &
+                              grid_data%hhu%block(k)%field,  &
+                              grid_data%hhv%block(k)%field,  &
+                              ocean_data%ssh   %block(k)%field,  &
+                              ocean_data%ubrtr %block(k)%field,  &
+                              ocean_data%vbrtr %block(k)%field)
+
+end subroutine
+
+subroutine sw_update_ssh_kernel(nx_start, nx_end, ny_start, ny_end,  &
+                                tau, lu, dx, dy, hhu, hhv, ssh, ubrtr, vbrtr)
+
+  integer, intent(in) :: nx_start, nx_end, ny_start, ny_end
+  real(wp8), intent(in) :: tau
+  real(wp8), intent(in) :: lu(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(in) :: dx(nx_start:nx_end, ny_start:ny_end),   &
+                           dy(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(in) :: hhu(nx_start:nx_end, ny_start:ny_end),  &
+                           hhv(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(in) :: ubrtr(nx_start:nx_end, ny_start:ny_end),  &
+                           vbrtr(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(inout) :: ssh(nx_start:nx_end, ny_start:ny_end)
+
+  integer :: m, n
+
+  do n=ny_start,ny_end
+    do m=nx_start,nx_end
+
+        if(lu(m,n)>0.5) then
+            ssh(m,n) = ssh(m,n) + 2.0d0*tau*(  &
+            - ( ubrtr(m,n)*hhu(m,n)*dy(m,n) - ubrtr(m-1,n)*hhu(m-1,n)*dy(m-1,n)             &
+              + vbrtr(m,n)*hhv(m,n)*dx(m,n) - vbrtr(m,n-1)*hhv(m,n-1)*dx(m,n-1) )/(dx(m,n)*dy(m,n))  )
+        endif
+
+    enddo
+  enddo
+
+end subroutine
+
 end module solver_module

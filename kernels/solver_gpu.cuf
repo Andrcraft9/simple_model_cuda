@@ -19,9 +19,7 @@ subroutine envoke_sw_simple_kernel_gpu(k, it)
     integer, intent(in) :: it
     type(dim3) :: tBlock, grid
 
-    !if (it == 1) then
     ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field
-    !endif
 
     tBlock = dim3(BLOCK_X, BLOCK_Y, 1)
     grid = dim3(ceiling(real(domain%bnx_end(k) - domain%bnx_start(k) + 1) / tBlock%x),  &
@@ -34,15 +32,14 @@ subroutine envoke_sw_simple_kernel_gpu(k, it)
 
     call sw_simple_kernel_gpu<<<grid, tBlock>>>(domain%bnx_start(k), domain%bnx_end(k), domain%bny_start(k), domain%bny_end(k), ocean_data%ssh%block(k)%field_gpu)
 
-    !if (it == 100) then
     ocean_data%ssh%block(k)%field = ocean_data%ssh%block(k)%field_gpu
-    !endif
 
 end subroutine
 
 attributes(global) subroutine sw_simple_kernel_gpu(nx_start, nx_end, ny_start, ny_end, ssh)
     integer, intent(in), value :: nx_start, nx_end, ny_start, ny_end
     real(wp8), intent(inout) :: ssh(nx_start:nx_end, ny_start:ny_end)
+
     integer, value :: i, j
 
     i = (blockIdx%x-1)*blockDim%x + threadIdx%x + (nx_start - 1)
@@ -51,6 +48,66 @@ attributes(global) subroutine sw_simple_kernel_gpu(nx_start, nx_end, ny_start, n
     if (i <= nx_end .and. j <= ny_end) then
         ssh(i,j) = ssh(i,j) + 1.0d0
      endif
+end subroutine
+
+subroutine envoke_sw_update_ssh_kernel_gpu(k, it)
+    integer, intent(in) :: k
+    integer, intent(in) :: it
+    type(dim3) :: tBlock, grid
+
+    ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field
+
+    tBlock = dim3(BLOCK_X, BLOCK_Y, 1)
+    grid = dim3(ceiling(real(domain%bnx_end(k) - domain%bnx_start(k) + 1) / tBlock%x),  &
+                ceiling(real(domain%bny_end(k) - domain%bny_start(k) + 1) / tBlock%y),  &
+                1)
+
+    if (it == 1) then
+        print '(A35, I16, I8, I8, I4, I8, I8, I4)', "KERNEL: block, GPU block, grid:", k, tBlock%x, tBlock%y, tBlock%z, grid%x, grid%y, grid%z
+    endif
+
+    call sw_update_ssh_kernel_gpu<<<grid, tBlock>>>(domain%bnx_start(k), domain%bnx_end(k), domain%bny_start(k), domain%bny_end(k),  &
+                                                    1.0d0,  &
+                                                    grid_data%lu %block(k)%field_gpu,  &
+                                                    grid_data%dxt%block(k)%field_gpu,  &
+                                                    grid_data%dyt%block(k)%field_gpu,  &
+                                                    grid_data%hhu%block(k)%field_gpu,  &
+                                                    grid_data%hhv%block(k)%field_gpu,  &
+                                                    ocean_data%ssh   %block(k)%field_gpu,  &
+                                                    ocean_data%ubrtr %block(k)%field_gpu,  &
+                                                    ocean_data%vbrtr %block(k)%field_gpu)
+
+    ocean_data%ssh%block(k)%field = ocean_data%ssh%block(k)%field_gpu
+
+end subroutine
+
+attributes(global) subroutine sw_update_ssh_kernel_gpu(nx_start, nx_end, ny_start, ny_end,  &
+                                                   tau, lu, dx, dy, hhu, hhv, ssh, ubrtr, vbrtr)
+
+  integer, intent(in), value :: nx_start, nx_end, ny_start, ny_end
+  real(wp8), intent(in), value :: tau
+  real(wp8), intent(in) :: lu(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(in) :: dx(nx_start:nx_end, ny_start:ny_end),   &
+                           dy(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(in) :: hhu(nx_start:nx_end, ny_start:ny_end),  &
+                           hhv(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(in) :: ubrtr(nx_start:nx_end, ny_start:ny_end),  &
+                           vbrtr(nx_start:nx_end, ny_start:ny_end)
+  real(wp8), intent(inout) :: ssh(nx_start:nx_end, ny_start:ny_end)
+
+  integer, value :: m, n
+
+  m = (blockIdx%x-1)*blockDim%x + threadIdx%x + (nx_start - 1)
+  n = (blockIdx%y-1)*blockDim%y + threadIdx%y + (ny_start - 1)
+  
+  if (m <= nx_end .and. n <= ny_end) then
+      if (lu(m,n)>0.5) then
+        ssh(m,n) = ssh(m,n) + 2.0d0*tau*(  &
+        - ( ubrtr(m,n)*hhu(m,n)*dy(m,n) - ubrtr(m-1,n)*hhu(m-1,n)*dy(m-1,n)             &
+            + vbrtr(m,n)*hhv(m,n)*dx(m,n) - vbrtr(m,n-1)*hhv(m,n-1)*dx(m,n-1) )/(dx(m,n)*dy(m,n))  )
+      endif
+  endif
+
 end subroutine
 
 end module solver_gpu_module

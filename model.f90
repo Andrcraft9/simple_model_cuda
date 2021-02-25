@@ -49,6 +49,7 @@ program model
     ! Make decomposition
     call mpp_init
     call domain_data%init(bppnx, bppny)
+    call mpp_sync_init(domain_data)
     ! Allocate data
     call ocean_data%init(domain_data)
     call grid_data%init(domain_data)
@@ -82,7 +83,7 @@ program model
     !call check_answer(iters)
 
     !
-    ! GPU Solver
+    ! GPU Solver 1
     !
 
     ! Init data (read/set)
@@ -91,7 +92,7 @@ program model
 
     ! Solver
     if (mpp_is_master())  then
-        print *, "MODEL: Start GPU Solver"
+        print *, "MODEL: Start GPU Solver 1"
         gpu_time_model_step = 0.0
         call start_gpu_timer()
     endif
@@ -105,7 +106,35 @@ program model
     if (mpp_is_master())  then
         call end_gpu_timer(t_local_real)
         gpu_time_model_step =  t_local_real
-        print *, "MODEL: GPU Solver Time:", gpu_time_model_step
+        print *, "MODEL: GPU Solver 1 Time:", gpu_time_model_step
+    endif
+    !call check_answer(iters)
+
+    !
+    ! GPU Solver 2
+    !
+
+    ! Init data (read/set)
+    call init_ocean_data
+    call init_grid_data
+
+    ! Solver
+    if (mpp_is_master())  then
+        print *, "MODEL: Start GPU Solver 2"
+        gpu_time_model_step2 = 0.0
+        call start_gpu_timer()
+    endif
+    
+    do it = 1, iters
+        sub_kernel => envoke_sw_update_ssh_kernel_gpu
+        sub_sync   => envoke_sw_update_ssh_sync_gpu
+        call envoke_async_gpu(sub_kernel, sub_sync, it)
+    enddo
+
+    if (mpp_is_master())  then
+        call end_gpu_timer(t_local_real)
+        gpu_time_model_step2 =  t_local_real
+        print *, "MODEL: GPU Solver 2 Time:", gpu_time_model_step2
     endif
     !call check_answer(iters)
 
@@ -117,6 +146,7 @@ program model
     call ocean_data%clear(domain_data)
     call grid_data%clear(domain_data)
     ! Clear decomposition
+    call mpp_sync_finalize(domain_data)
     call domain_data%clear()
     call mpp_finalize
 

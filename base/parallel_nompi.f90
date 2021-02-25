@@ -24,7 +24,7 @@ module mpp_module
     
     ! GPU
     type (cudaEvent), public :: gpu_start_event, gpu_stop_event
-    real(wp4), public :: gpu_time_model_step
+    real(wp4), public :: gpu_time_model_step, gpu_time_model_step2
 
 contains
 
@@ -97,6 +97,7 @@ contains
 
         mpp_time_model_step = 0.0d0
         gpu_time_model_step = 0.0
+        gpu_time_model_step2 = 0.0
 
         istat = cudaEventCreate(gpu_start_event)
         istat = cudaEventCreate(gpu_stop_event)
@@ -112,7 +113,8 @@ contains
         endif
 
         ! Timers for master thread
-        if (mpp_rank == 0) write(*,'(a52, F12.2, F12.2)') "Time full of model step: CPU solver and GPU solver:", mpp_time_model_step, gpu_time_model_step
+        if (mpp_rank == 0) write(*,'(a60, F12.2, F12.2)') "Time full of model step: CPU solver:", mpp_time_model_step
+        if (mpp_rank == 0) write(*,'(a60, F12.2, F12.2)') "Time full of model step: GPU solver 1, GPU solver 2:", gpu_time_model_step, gpu_time_model_step2
 
         istat = cudaEventDestroy(gpu_start_event)
         istat = cudaEventDestroy(gpu_stop_event)

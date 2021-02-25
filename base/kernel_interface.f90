@@ -30,25 +30,41 @@ contains
         integer, intent(in) :: it 
         
         integer :: k
-        type(sync_parameters_type) :: sync_params
-        sync_params%sync_mode = -1
+        type(sync_parameters_type) :: sync_params_dummy, sync_params_htod, sync_params_dtoh
+
+        sync_params_dummy%sync_mode = -1
+        sync_params_dtoh%sync_mode = 0
+        sync_params_htod%sync_mode = 1
 
         do k = 1, domain%bcount
+            call sub_sync(k, sync_params_htod)
             call sub_kernel(k, it)
+            call sub_sync(k, sync_params_dtoh)
         enddo
-
-        call sub_sync(0, sync_params)
 
     end subroutine
 
-!    subroutine envoke_gpu(sub_kernel, it)
-!        procedure(envoke_empty_kernel), pointer :: sub_kernel
-!        integer, intent(in) :: it 
-!        integer :: k
-!        integer :: istat
-!
-!        istat = cudaEventRecord(startEvent, 0)
-!
-!    end subroutine
+    subroutine envoke_async_gpu(sub_kernel, sub_sync, it)
+        procedure(envoke_empty_kernel), pointer :: sub_kernel
+        procedure(envoke_empty_sync), pointer :: sub_sync
+        integer, intent(in) :: it
+
+        integer :: k
+        integer :: istat
+        type(sync_parameters_type) :: sync_params_dummy, sync_params_htod, sync_params_dtoh, async_params_htod, async_params_dtoh
+        
+        sync_params_dummy%sync_mode = -1
+        sync_params_dtoh%sync_mode = 0
+        sync_params_htod%sync_mode = 1
+        async_params_dtoh%sync_mode = 2
+        async_params_htod%sync_mode = 3
+
+        do k = 1, domain%bcount
+            call sub_sync(k, async_params_htod)
+            call sub_kernel(k, it)
+            call sub_sync(k, async_params_dtoh)
+        enddo
+
+    end subroutine
 
 end module kernel_interface_module

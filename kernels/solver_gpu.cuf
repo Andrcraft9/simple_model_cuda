@@ -1,6 +1,7 @@
 module solver_gpu_module
 
     use kind_module, only: wp8 => SHR_KIND_R8, wp4 => SHR_KIND_R4
+    use cudafor
     use kernel_interface_module
     use mpp_sync_module
     use decomposition_module, only: domain_type, domain => domain_data
@@ -37,10 +38,28 @@ subroutine envoke_sw_simple_sync_gpu(k, sync_parameters)
     integer, intent(in) :: k
     type(sync_parameters_type), intent(in) :: sync_parameters
 
+    integer :: istat
+
     if (sync_parameters%sync_mode == 0) then
         ocean_data%ssh%block(k)%field = ocean_data%ssh%block(k)%field_gpu
     else if (sync_parameters%sync_mode == 1) then
-        ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field
+        ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field 
+    else if (sync_parameters%sync_mode == 2) then
+        istat = cudaMemcpy2DAsync(ocean_data%ssh%block(k)%field    (domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  ocean_data%ssh%block(k)%field_gpu(domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bny_end(k) - domain%bny_start(k) + 1,  &
+                                  stream=sync_gpu_streams(k))
+    else if (sync_parameters%sync_mode == 3) then
+        istat = cudaMemcpy2DAsync(ocean_data%ssh%block(k)%field_gpu(domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  ocean_data%ssh%block(k)%field    (domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bny_end(k) - domain%bny_start(k) + 1,  &
+                                  stream=sync_gpu_streams(k))
     endif
 end subroutine 
 
@@ -90,10 +109,28 @@ subroutine envoke_sw_update_ssh_sync_gpu(k, sync_parameters)
     integer, intent(in) :: k
     type(sync_parameters_type), intent(in) :: sync_parameters
 
+    integer :: istat
+
     if (sync_parameters%sync_mode == 0) then
         ocean_data%ssh%block(k)%field = ocean_data%ssh%block(k)%field_gpu
     else if (sync_parameters%sync_mode == 1) then
-        ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field
+        ocean_data%ssh%block(k)%field_gpu = ocean_data%ssh%block(k)%field 
+    else if (sync_parameters%sync_mode == 2) then
+        istat = cudaMemcpy2DAsync(ocean_data%ssh%block(k)%field    (domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  ocean_data%ssh%block(k)%field_gpu(domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bny_end(k) - domain%bny_start(k) + 1,  &
+                                  stream=sync_gpu_streams(k))
+    else if (sync_parameters%sync_mode == 3) then
+        istat = cudaMemcpy2DAsync(ocean_data%ssh%block(k)%field_gpu(domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  ocean_data%ssh%block(k)%field    (domain%bnx_start(k), domain%bny_start(k)),  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bnx_end(k) - domain%bnx_start(k) + 1,  &
+                                  domain%bny_end(k) - domain%bny_start(k) + 1,  &
+                                  stream=sync_gpu_streams(k))
     endif
 end subroutine 
 

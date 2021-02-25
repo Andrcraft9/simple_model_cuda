@@ -2,6 +2,7 @@ module solver_module
 
     use kind_module, only: wp8 => SHR_KIND_R8, wp4 => SHR_KIND_R4
     use kernel_interface_module
+    use mpp_sync_module
     use decomposition_module, only: domain_type, domain => domain_data
     use ocean_module, only: ocean_type, ocean_data
     use grid_module, only: grid_type, grid_data
@@ -20,6 +21,11 @@ subroutine envoke_sw_simple_kernel(k, it)
                           ocean_data%ssh%block(k)%field)
 
 end subroutine
+
+subroutine envoke_sw_simple_sync(k, sync_parameters)
+    integer, intent(in) :: k
+    type(sync_parameters_type), intent(in) :: sync_parameters
+end subroutine 
 
 subroutine sw_simple_kernel(nx_start, nx_end, ny_start, ny_end, ssh)
 
@@ -53,6 +59,11 @@ subroutine envoke_sw_update_ssh_kernel(k, it)
 
 end subroutine
 
+subroutine envoke_sw_update_ssh_sync(k, sync_parameters)
+    integer, intent(in) :: k
+    type(sync_parameters_type), intent(in) :: sync_parameters
+end subroutine 
+
 subroutine sw_update_ssh_kernel(nx_start, nx_end, ny_start, ny_end,  &
                                 tau, lu, dx, dy, hhu, hhv, ssh, ubrtr, vbrtr)
 
@@ -69,8 +80,8 @@ subroutine sw_update_ssh_kernel(nx_start, nx_end, ny_start, ny_end,  &
 
   integer :: m, n
 
-  do n=ny_start,ny_end
-    do m=nx_start,nx_end
+  do n=ny_start + 1, ny_end - 1
+    do m=nx_start + 1, nx_end - 1
 
         if(lu(m,n)>0.5) then
             ssh(m,n) = ssh(m,n) + 2.0d0*tau*(  &

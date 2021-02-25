@@ -24,21 +24,14 @@ PROF = /opt/nvidia/hpc_sdk/Linux_x86_64/2021/cuda/bin/nvprof
 #FCD = $(FC) $(FCGCC) $(FCGCC_DEBUG)
 FCD = $(FC) $(FCGCC) $(FCGCC_FAST)
 
-#BASE = \
-	base/kind.f90 \
-	base/basinpar.f90 \
-	base/parallel.f90 \
-	base/errors.f90 \
-	base/decomposition.f90 \
-	base/data_types.f90 \
-	base/kernel_interface.f90
 BASE = \
 	base/kind.f90 \
 	base/basinpar.f90 \
-	base/gpuparallel.f90 \
+	base/parallel_nompi.f90 \
 	base/errors.f90 \
 	base/decomposition.f90 \
 	base/data_types.f90 \
+	base/sync.f90 \
 	base/kernel_interface.f90
 
 DATA = \

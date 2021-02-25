@@ -1,5 +1,7 @@
 program model
+    use kind_module, only: wp8 => SHR_KIND_R8, wp4 => SHR_KIND_R4
     use mpp_module
+    use mpp_sync_module
     use basinpar_module, only: nx, ny
     use errors_module
     use decomposition_module
@@ -13,8 +15,10 @@ program model
     implicit none
 
     real(wp8) :: t_local
+    real(wp4) :: t_local_real
     integer :: it
     procedure(envoke_empty_kernel), pointer :: sub_kernel
+    procedure(envoke_empty_sync), pointer :: sub_sync
     character(len=32) :: arg
     integer :: bppnx, bppny, iters
 
@@ -65,8 +69,9 @@ program model
     endif
     
     do it = 1, iters
-        sub_kernel => envoke_sw_simple_kernel
-        call envoke(sub_kernel, it)
+        sub_kernel => envoke_sw_update_ssh_kernel
+        sub_sync   => envoke_sw_update_ssh_sync
+        call envoke(sub_kernel, sub_sync, it)
     enddo
 
     if (mpp_is_master())  then
@@ -74,7 +79,7 @@ program model
         mpp_time_model_step =  t_local
         print *, "MODEL: CPU Solver Time:", mpp_time_model_step
     endif
-    call check_answer(iters)
+    !call check_answer(iters)
 
     !
     ! GPU Solver
@@ -87,21 +92,22 @@ program model
     ! Solver
     if (mpp_is_master())  then
         print *, "MODEL: Start GPU Solver"
-        mpp_time_model_step = 0.0d0
-        call start_timer(t_local)
+        gpu_time_model_step = 0.0
+        call start_gpu_timer()
     endif
     
     do it = 1, iters
-        sub_kernel => envoke_sw_simple_kernel_gpu
-        call envoke(sub_kernel, it)
+        sub_kernel => envoke_sw_update_ssh_kernel_gpu
+        sub_sync   => envoke_sw_update_ssh_sync_gpu
+        call envoke(sub_kernel, sub_sync, it)
     enddo
 
     if (mpp_is_master())  then
-        call end_timer(t_local)
-        mpp_time_model_step =  t_local
-        print *, "MODEL: GPU Solver Time:", mpp_time_model_step
+        call end_gpu_timer(t_local_real)
+        gpu_time_model_step =  t_local_real
+        print *, "MODEL: GPU Solver Time:", gpu_time_model_step
     endif
-    call check_answer(iters)
+    !call check_answer(iters)
 
     !
     ! Finalize

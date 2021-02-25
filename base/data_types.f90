@@ -2,6 +2,7 @@ module data_types_module
 
     use kind_module, only: wp8 => SHR_KIND_R8, wp4 => SHR_KIND_R4
     use mpp_module
+    use errors_module
     use decomposition_module
 
     implicit none
@@ -10,12 +11,12 @@ module data_types_module
 
     ! Data types for Parallel System layer
     type, public :: block2D_real4_type
-        real(wp4), allocatable :: field(:, :)
+        real(wp4), pinned, allocatable :: field(:, :)
         real(wp4), allocatable, device :: field_gpu(:, :)
     end type block2D_real4_type
 
     type, public :: block2D_real8_type
-        real(wp8), allocatable :: field(:, :)
+        real(wp8), pinned, allocatable :: field(:, :)
         real(wp8), allocatable, device :: field_gpu(:, :)
     end type block2D_real8_type
 
@@ -42,11 +43,18 @@ contains
         class(data2D_real4_type), intent(inout) :: this
         type(domain_type), intent(in) :: domain
         integer :: k
+        integer :: istat
+        logical :: pinned_flag
 
         ! CPU: init first
         allocate(this%block(domain%bcount))
         do k = 1, domain%bcount
-            allocate(this%block(k)%field(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
+            allocate(this%block(k)%field(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)), stat=istat, pinned=pinned_flag)
+            if (istat /= 0) then
+                call abort_model("Data2D_real4: Error: Allocation is failed")
+            else if (.not. pinned_flag) then
+                print *, "Data2D_real4: Warning: Pinned allocation is failed."
+            endif
             this%block(k)%field = 0.0
         enddo
 
@@ -78,11 +86,18 @@ contains
         class(data2D_real8_type), intent(inout) :: this
         type(domain_type), intent(in) :: domain
         integer :: k
+        integer :: istat
+        logical :: pinned_flag
 
         ! CPU: init first
         allocate(this%block(domain%bcount))
         do k = 1, domain%bcount
-            allocate(this%block(k)%field(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)))
+            allocate(this%block(k)%field(domain%bnx_start(k) : domain%bnx_end(k), domain%bny_start(k) : domain%bny_end(k)), stat=istat, pinned=pinned_flag)
+            if (istat /= 0) then
+                call abort_model("Data2D_real8: Error: Allocation is failed")
+            else if (.not. pinned_flag) then
+                print *, "Data2D_real8: Warning: Pinned allocation is failed."
+            endif
             this%block(k)%field = 0.0d0
         enddo
 

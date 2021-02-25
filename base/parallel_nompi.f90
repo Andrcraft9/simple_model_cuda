@@ -21,11 +21,15 @@ module mpp_module
 
     ! Timers for master thread
     real(wp8), public :: mpp_time_model_step
+    
+    ! GPU
+    type (cudaEvent), public :: gpu_start_event, gpu_stop_event
+    real(wp4), public :: gpu_time_model_step
 
 contains
 
     subroutine mpp_init()
-
+        integer :: istat
         type (cudaDeviceProp) :: prop
         integer :: nDevices=0, i, ierr
 
@@ -87,13 +91,20 @@ contains
                 prop%maxThreadsDim
             write(*,"('    Max Threads per Block: ',i0,/)") &
                 prop%maxThreadsPerBlock
+            write(*,"('    Device Overlap: ',i0,/)") &
+                prop%deviceOverlap
         enddo
 
         mpp_time_model_step = 0.0d0
+        gpu_time_model_step = 0.0
+
+        istat = cudaEventCreate(gpu_start_event)
+        istat = cudaEventCreate(gpu_stop_event)
     end subroutine
 
     subroutine mpp_finalize()
         integer :: ierr
+        integer :: istat
         real(wp8) :: maxtime_model_step, mintime_model_step
 
         if (mpp_is_master()) then
@@ -101,7 +112,10 @@ contains
         endif
 
         ! Timers for master thread
-        if (mpp_rank == 0) write(*,'(a50, F12.2, F12.2)') "Time full of model step (max and min): ", mpp_time_model_step, mpp_time_model_step
+        if (mpp_rank == 0) write(*,'(a52, F12.2, F12.2)') "Time full of model step: CPU solver and GPU solver:", mpp_time_model_step, gpu_time_model_step
+
+        istat = cudaEventDestroy(gpu_start_event)
+        istat = cudaEventDestroy(gpu_stop_event)
     end subroutine
 
     subroutine start_timer(time)
@@ -116,6 +130,20 @@ contains
         call cpu_time(time_now)
         time = time_now - time
         return
+    end subroutine
+
+    subroutine start_gpu_timer()
+        integer :: istat
+        istat = cudaEventRecord(gpu_start_event, 0)
+    end subroutine
+
+    subroutine end_gpu_timer(time)
+        real(wp4), intent(inout) :: time
+        integer :: istat
+        istat = cudaEventRecord(gpu_stop_event, 0)
+        istat = cudaEventSynchronize(gpu_stop_event)
+        istat = cudaEventElapsedTime(time, gpu_start_event, gpu_stop_event)
+        time = time * 0.001 ! ms to sec
     end subroutine
 
     function mpp_is_master() result(is)

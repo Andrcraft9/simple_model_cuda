@@ -37,6 +37,27 @@ contains
         sync_params_htod%sync_mode = 1
 
         do k = 1, domain%bcount
+            call sub_sync(k, sync_params_dummy)
+            call sub_kernel(k, it)
+            call sub_sync(k, sync_params_dummy)
+        enddo
+
+    end subroutine
+
+
+    subroutine envoke_sync_gpu(sub_kernel, sub_sync, it)
+        procedure(envoke_empty_kernel), pointer :: sub_kernel
+        procedure(envoke_empty_sync), pointer :: sub_sync
+        integer, intent(in) :: it 
+        
+        integer :: k
+        type(sync_parameters_type) :: sync_params_dummy, sync_params_htod, sync_params_dtoh
+
+        sync_params_dummy%sync_mode = -1
+        sync_params_dtoh%sync_mode = 0
+        sync_params_htod%sync_mode = 1
+
+        do k = 1, domain%bcount
             call sub_sync(k, sync_params_htod)
             call sub_kernel(k, it)
             call sub_sync(k, sync_params_dtoh)

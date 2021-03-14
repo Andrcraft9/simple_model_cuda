@@ -83,7 +83,7 @@ program model
     !call check_answer(iters)
 
     !
-    ! GPU Solver 1
+    ! GPU Solver 0
     !
 
     ! Init data (read/set)
@@ -92,8 +92,8 @@ program model
 
     ! Solver
     if (mpp_is_master())  then
-        print *, "MODEL: Start GPU Solver 1"
-        gpu_time_model_step = 0.0
+        print *, "MODEL: Start GPU Solver 0"
+        gpu_time_model_step0 = 0.0
         call start_gpu_timer()
     endif
     
@@ -105,8 +105,36 @@ program model
 
     if (mpp_is_master())  then
         call end_gpu_timer(t_local_real)
-        gpu_time_model_step =  t_local_real
-        print *, "MODEL: GPU Solver 1 Time:", gpu_time_model_step
+        gpu_time_model_step0 =  t_local_real
+        print *, "MODEL: GPU Solver 0 Time:", gpu_time_model_step0
+    endif
+    !call check_answer(iters)
+
+    !
+    ! GPU Solver 1
+    !
+
+    ! Init data (read/set)
+    call init_ocean_data
+    call init_grid_data
+
+    ! Solver
+    if (mpp_is_master())  then
+        print *, "MODEL: Start GPU Solver 1"
+        gpu_time_model_step1 = 0.0
+        call start_gpu_timer()
+    endif
+    
+    do it = 1, iters
+        sub_kernel => envoke_sw_update_ssh_kernel_gpu
+        sub_sync   => envoke_sw_update_ssh_sync_gpu
+        call envoke_sync_gpu(sub_kernel, sub_sync, it)
+    enddo
+
+    if (mpp_is_master())  then
+        call end_gpu_timer(t_local_real)
+        gpu_time_model_step1 =  t_local_real
+        print *, "MODEL: GPU Solver 1 Time:", gpu_time_model_step1
     endif
     !call check_answer(iters)
 

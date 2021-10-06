@@ -12,7 +12,7 @@ module solver_gpu_module
     save
     public
 
-    integer, parameter :: BLOCK_X = 32, BLOCK_Y = 32
+    integer, parameter :: BLOCK_X = 16, BLOCK_Y = 16
 
 contains
 

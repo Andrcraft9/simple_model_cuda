@@ -114,9 +114,9 @@ contains
         endif
 
         ! Timers for master thread
-        if (mpp_rank == 0) write(*,'(a60, F12.2, F12.2)') "Time full of model step: CPU solver  :", mpp_time_model_step
-        if (mpp_rank == 0) write(*,'(a60, F12.2, F12.2)') "Time full of model step: GPU solver 0:", gpu_time_model_step0
-        if (mpp_rank == 0) write(*,'(a60, F12.2, F12.2)') "Time full of model step: GPU solver 1, GPU solver 2:", gpu_time_model_step1, gpu_time_model_step2
+        if (mpp_rank == 0) write(*,'(a60, F12.4, F12.4)') "Time full of model step: CPU solver  :", mpp_time_model_step
+        if (mpp_rank == 0) write(*,'(a60, F12.4, F12.4)') "Time full of model step: GPU solver 0:", gpu_time_model_step0
+        if (mpp_rank == 0) write(*,'(a60, F12.4, F12.4)') "Time full of model step: GPU solver 1, GPU solver 2:", gpu_time_model_step1, gpu_time_model_step2
 
         istat = cudaEventDestroy(gpu_start_event)
         istat = cudaEventDestroy(gpu_stop_event)
